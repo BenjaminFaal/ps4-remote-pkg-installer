@@ -11,6 +11,7 @@ Tired of copying PKG files to USB then walking over to your PS4 and manually ins
 ## Usage
 - Install [Java 8](https://www.oracle.com/java/technologies/javase-jre8-downloads.html) or higher
 - Download [PS4 Remote PKG Installer](https://github.com/BenjaminFaal/ps4-remote-pkg-installer/releases)
+- Install Remote PKG Installer on your PS4 by [@flatz](https://github.com/flatz) https://github.com/flatz/ps4_remote_pkg_installer
 - Start the .jar file
 
 ## Features
