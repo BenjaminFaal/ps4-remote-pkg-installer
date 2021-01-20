@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.4.2</version>
+        <relativePath/>
+    </parent>
+    <groupId>com.benjaminfaal</groupId>
+    <artifactId>ps4-remote-pkg-installer</artifactId>
+    <version>0.0.1</version>
+    <name>PS4 Remote PKG Installer</name>
+    <description>PS4 Remote PKG Installer GUI for https://github.com/flatz/ps4_remote_pkg_installer</description>
+
+    <properties>
+        <java.version>1.8</java.version>
+
+        <!--Dependencies versions-->
+        <ps4-error-codes.version>0.0.1</ps4-error-codes.version>
+        <ps4-remote-control.version>0.0.1</ps4-remote-control.version>
+        <jcef-loader.version>0.0.1</jcef-loader.version>
+
+        <!--Swing-->
+        <flatlaf.version>0.46</flatlaf.version>
+        <intellij-forms_rt.version>7.0.3</intellij-forms_rt.version>
+        <intellij-idea-gui-designer-maven-plugin.version>2020.3.1</intellij-idea-gui-designer-maven-plugin.version>
+    </properties>
+
+    <repositories>
+        <repository>
+            <id>jitpack</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>jitpack</id>
+            <url>https://jitpack.io</url>
+        </pluginRepository>
+    </pluginRepositories>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-client</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!--Swing-->
+        <dependency>
+            <groupId>com.formdev</groupId>
+            <artifactId>flatlaf</artifactId>
+            <version>${flatlaf.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.intellij</groupId>
+            <artifactId>forms_rt</artifactId>
+            <version>${intellij-forms_rt.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.BenjaminFaal</groupId>
+            <artifactId>ps4-error-codes</artifactId>
+            <version>${ps4-remote-control.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.BenjaminFaal</groupId>
+            <artifactId>ps4-remote-control</artifactId>
+            <version>${ps4-remote-control.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.BenjaminFaal</groupId>
+            <artifactId>jcef-loader</artifactId>
+            <version>${jcef-loader.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.github.BenjaminFaal</groupId>
+                <artifactId>intellij-idea-gui-designer-maven-plugin</artifactId>
+                <version>${intellij-idea-gui-designer-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compile-forms</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

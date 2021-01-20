@@ -1,0 +1,22 @@
+psn:
+    oauth-base-url: https://auth.api.sonyentertainmentnetwork.com/2.0/oauth
+
+spring:
+    security:
+        oauth2:
+            client:
+                registration:
+                    psn:
+                        client-name: Login with PSN
+                        client-id: ba495a24-818c-472b-b12d-ff231c1b5745
+                        client-secret: mvaiZkRsAsI1IBkY
+                        scope: psn:clientapp
+                        redirect-uri: https://remoteplay.dl.playstation.net/remoteplay/redirect
+                        authorization-grant-type: authorization_code
+
+                provider:
+                    psn:
+                        token-uri: ${psn.oauth-base-url}/token
+                        authorization-uri: ${psn.oauth-base-url}/authorize
+                        user-info-uri: https://vl.api.np.km.playstation.net/vl/api/v1/mobile/users/me/info
+                        user-name-attribute: mAccountId

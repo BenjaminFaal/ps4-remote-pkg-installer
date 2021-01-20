@@ -1,0 +1,7 @@
+project:
+    name: @project.name@
+    version: @project.version@
+
+spring:
+    profiles:
+        include: psn-oauth
