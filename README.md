@@ -2,6 +2,7 @@
 PS4 Remote PKG Installer GUI for https://github.com/flatz/ps4_remote_pkg_installer
 
 [![Release](https://img.shields.io/github/v/release/BenjaminFaal/ps4-remote-pkg-installer)](https://github.com/BenjaminFaal/ps4-remote-pkg-installer/releases)
+[![Downloads](https://img.shields.io/github/downloads/BenjaminFaal/ps4-remote-pkg-installer/latest/total)](https://github.com/BenjaminFaal/ps4-remote-pkg-installer/releases)
 
 Tired of copying PKG files to USB then walking over to your PS4 and manually installing them? PS4 Remote PKG Installer is here to help!
 
