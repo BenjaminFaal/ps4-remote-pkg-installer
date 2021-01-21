@@ -51,6 +51,9 @@ public class PS4RemotePKGInstallerApplication {
                             mainUI.setLocationRelativeTo(null);
                             mainUI.setVisible(true);
                         });
+
+                        Updater updater = ((ApplicationStartedEvent) event).getApplicationContext().getBean(Updater.class);
+                        updater.checkForUpdate();
                     }
                 })
                 .run(args);
