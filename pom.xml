@@ -21,6 +21,7 @@
         <ps4-error-codes.version>0.0.1</ps4-error-codes.version>
         <ps4-remote-control.version>0.0.1</ps4-remote-control.version>
         <jcef-loader.version>0.0.1</jcef-loader.version>
+        <junrar.version>7.4.0</junrar.version>
 
         <!--Swing-->
         <flatlaf.version>0.46</flatlaf.version>
@@ -88,6 +89,11 @@
             <groupId>com.github.BenjaminFaal</groupId>
             <artifactId>jcef-loader</artifactId>
             <version>${jcef-loader.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.junrar</groupId>
+            <artifactId>junrar</artifactId>
+            <version>${junrar.version}</version>
         </dependency>
     </dependencies>
 

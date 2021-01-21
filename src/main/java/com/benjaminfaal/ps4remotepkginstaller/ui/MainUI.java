@@ -20,6 +20,8 @@ import com.benjaminfaal.ps4remotepkginstaller.model.api.response.InstallResponse
 import com.benjaminfaal.ps4remotepkginstaller.model.api.response.TaskProgress;
 import com.benjaminfaal.ps4remotepkginstaller.service.AuthenticationService;
 import com.benjaminfaal.ps4remotepkginstaller.service.RemotePKGInstallerService;
+import com.benjaminfaal.ps4remotepkginstaller.util.Utils;
+import com.github.junrar.Junrar;
 import lombok.extern.apachecommons.CommonsLog;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,7 +45,8 @@ import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.io.File;
 import java.io.IOException;
-import java.net.InetAddress;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -81,6 +84,8 @@ public class MainUI extends JFrame {
 
     private JPanel selectedTaskPanel;
 
+    private JButton btnInstallRAR;
+
     // Spring
     @Value("${project.version}")
     private String projectVersion;
@@ -116,6 +121,7 @@ public class MainUI extends JFrame {
         initDiscoverUI();
         initTasksTable();
         initInstallPKGsButton();
+        initInstallPKGsFromRARButton();
         initInstallManifestJSONUrlButton();
         initInstallPKGUrlButton();
     }
@@ -675,6 +681,65 @@ public class MainUI extends JFrame {
                 }
             }
         });
+    }
+
+    private void initInstallPKGsFromRARButton() {
+        btnInstallRAR.setEnabled(isServerEnabled());
+        btnInstallRAR.addActionListener(event -> {
+            if (!checkRemotePKGInstallerIsRunning()) {
+                return;
+            }
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setFileFilter(new FileNameExtensionFilter("RAR files", "rar"));
+            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+            fileChooser.setMultiSelectionEnabled(false);
+            if (settings.containsKey("lastDirectory")) {
+                fileChooser.setCurrentDirectory(new File(settings.getProperty("lastDirectory")));
+            }
+            if (fileChooser.showOpenDialog(rootPane) == JFileChooser.APPROVE_OPTION) {
+                File rarFile = fileChooser.getSelectedFile();
+                if (rarFile != null) {
+                    settings.setProperty("lastDirectory", rarFile.getParent());
+
+                    installRAR(rarFile);
+                }
+            }
+        });
+    }
+
+    private void installRAR(File rarFile) {
+        List<File> extracted;
+        try {
+            if (Junrar.getContentsDescription(rarFile).stream().noneMatch(contentDescription -> contentDescription.path.endsWith(".pkg"))) {
+                JOptionPane.showMessageDialog(this, rarFile + " does not contain any PKG files", "No PKG files", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            Path destinationFolder = Utils.getWorkingDirectory().resolve("rar").resolve(rarFile.getName());
+            if (!Files.exists(destinationFolder)) {
+                Files.createDirectories(destinationFolder);
+            }
+            Path extractedLockFile = destinationFolder.resolve(".extracted");
+            if (!Files.exists(extractedLockFile)) {
+                JOptionPane.showMessageDialog(this, "Extracting " + rarFile + " to " + destinationFolder);
+                extracted = Junrar.extract(rarFile, destinationFolder.toFile());
+                Files.createFile(extractedLockFile);
+            } else {
+                extracted = Files.list(destinationFolder).map(Path::toFile).collect(Collectors.toList());
+            }
+        } catch (Exception e) {
+            log.error("Error extracting " + rarFile, e);
+            JOptionPane.showMessageDialog(this, "Error extracting " + rarFile + System.lineSeparator() + e.getMessage(), "Error extracting " + rarFile, JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        File[] extractedPKGFiles = extracted.stream()
+                .filter(file -> new FileNameExtensionFilter("PS4 PKG files", "pkg").accept(file))
+                .toArray(File[]::new);
+        if (extractedPKGFiles.length == 0) {
+            JOptionPane.showMessageDialog(this, "No PKG files found inside " + rarFile);
+        } else {
+            doInstallInBackground(() -> remotePKGInstallerService.installFiles(extractedPKGFiles));
+        }
     }
 
     private void initInstallPKGUrlButton() {

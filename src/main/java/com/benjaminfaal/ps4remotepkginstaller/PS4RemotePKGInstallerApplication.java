@@ -47,7 +47,7 @@ public class PS4RemotePKGInstallerApplication {
                         MainUI mainUI = ((ApplicationStartedEvent) event).getApplicationContext().getBean(MainUI.class);
                         SwingUtilities.invokeLater(() -> {
                             mainUI.init();
-                            mainUI.setSize(600, 480);
+                            mainUI.setSize(800, 600);
                             mainUI.setLocationRelativeTo(null);
                             mainUI.setVisible(true);
                         });
