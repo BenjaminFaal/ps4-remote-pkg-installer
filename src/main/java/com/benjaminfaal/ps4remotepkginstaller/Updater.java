@@ -30,11 +30,17 @@ public class Updater {
         try {
             Map<String, Object> latestRelease = restTemplate.getForObject(LATEST_RELEASE_URL, Map.class);
             String latestTagName = (String) latestRelease.get("tag_name");
+            String changelog = (String) latestRelease.get("body");
             VersionNumber latestVersion = new VersionNumber(latestTagName);
             VersionNumber currentVersion = new VersionNumber(projectVersion);
 
             if (currentVersion.compareTo(latestVersion) < 0) {
-                JOptionPane.showMessageDialog(null, "There is a new and better version available: " + latestVersion, "Update available", JOptionPane.INFORMATION_MESSAGE);
+                String message =
+                        "There is a new and better version available: " + latestVersion + System.lineSeparator() + System.lineSeparator() +
+                                "Changelog:" +
+                                System.lineSeparator() +
+                                changelog;
+                JOptionPane.showMessageDialog(null, message, "Update available", JOptionPane.INFORMATION_MESSAGE);
                 Desktop.getDesktop().browse(URI.create((String) latestRelease.get("html_url")));
             }
         } catch (Exception e) {
