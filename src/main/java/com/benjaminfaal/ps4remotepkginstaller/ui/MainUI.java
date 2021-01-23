@@ -86,6 +86,8 @@ public class MainUI extends JFrame {
 
     private JButton btnInstallRAR;
 
+    private JCheckBox chkRemoteControl;
+
     // Spring
     @Value("${project.version}")
     private String projectVersion;
@@ -144,7 +146,12 @@ public class MainUI extends JFrame {
                 Console console = (Console) e.getItem();
                 btnAuthenticate.setText(authenticationService.isAuthenticated(console) ? "Deauthenticate" : "Authenticate");
                 btnAuthenticate.setEnabled(true);
-                connect(console);
+                if (isRemoteControl()) {
+                    connect(console);
+                } else {
+                    remotePKGInstallerService.setHost(console.getHost());
+                    refreshTasks();
+                }
             }
         });
 
@@ -159,6 +166,14 @@ public class MainUI extends JFrame {
                 authenticationService.authenticate(console);
                 connect(console);
             }
+        });
+
+        chkRemoteControl.setSelected(Boolean.parseBoolean(settings.getProperty("remoteControl", String.valueOf(true))));
+        btnAuthenticate.setVisible(isRemoteControl());
+        chkRemoteControl.addChangeListener(e -> {
+            boolean remoteControl = chkRemoteControl.isSelected();
+            settings.setProperty("remoteControl", String.valueOf(remoteControl));
+            btnAuthenticate.setVisible(remoteControl);
         });
     }
 
@@ -560,7 +575,7 @@ public class MainUI extends JFrame {
     {
         new Timer(10000, event -> {
             try {
-                if (connection != null && connection.isConnected()) {
+                if (isRemoteControl() && connection != null && connection.isConnected()) {
                     connection.sendStatus(0);
                 }
             } catch (IOException e) {
@@ -570,6 +585,9 @@ public class MainUI extends JFrame {
     }
 
     private void connect(Console console) {
+        if (!isRemoteControl()) {
+            throw new IllegalStateException("Remote control is disabled");
+        }
         authenticationService.authenticate(console);
         if (authenticationService.isAuthenticated(console)) {
             if (console.getStatus() == Status.STANDBY) {
@@ -802,7 +820,7 @@ public class MainUI extends JFrame {
     private boolean checkRemotePKGInstallerIsRunning() {
         if (isRemotePKGInstallerRunning()) {
             return true;
-        } else {
+        } else if (isRemoteControl()) {
             String message = "Remote PKG Installer is not running in the foreground. Do you want to start Remote PKG Installer?";
             if (JOptionPane.showConfirmDialog(this, message, "Start Remote PKG Installer", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
                 try {
@@ -817,6 +835,9 @@ public class MainUI extends JFrame {
                     JOptionPane.showMessageDialog(this, errorMessage + System.lineSeparator() + e.getMessage(), "Error starting Remote PKG Installer", JOptionPane.ERROR_MESSAGE);
                 }
             }
+            return false;
+        } else {
+            JOptionPane.showMessageDialog(this, "Remote PKG Installer is not running in the foreground. Please start it on the PS4.", "Start Remote PKG Installer", JOptionPane.INFORMATION_MESSAGE);
             return false;
         }
     }
@@ -836,11 +857,12 @@ public class MainUI extends JFrame {
     }
 
     private boolean isRemotePKGInstallerRunning() {
-        if (connection == null) {
+        if (cmbDiscoveredConsoles.getSelectedItem() == null) {
             return false;
         }
         try {
-            Console console = PS4DDP.discover(connection.getHost(), 1000);
+            Console selectedConsole = (Console) cmbDiscoveredConsoles.getSelectedItem();
+            Console console = PS4DDP.discover(selectedConsole.getHost(), 1000);
             return Objects.equals(console.get("running-app-titleid"), "FLTZ00003")
                     &&
                     Objects.equals(console.get("running-app-name"), "Remote PKG installer");
@@ -852,6 +874,10 @@ public class MainUI extends JFrame {
 
     private boolean isWindowActive() {
         return getState() != Frame.ICONIFIED;
+    }
+
+    private boolean isRemoteControl() {
+        return chkRemoteControl.isSelected();
     }
 
 }
