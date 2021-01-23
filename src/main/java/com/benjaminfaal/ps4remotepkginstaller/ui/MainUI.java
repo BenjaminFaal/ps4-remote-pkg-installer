@@ -188,7 +188,7 @@ public class MainUI extends JFrame {
         new SwingWorker<List<Console>, Console>() {
             @Override
             protected List<Console> doInBackground() throws Exception {
-                return PS4DDP.discover(2500, this::publish);
+                return PS4DDP.discover(5000, this::publish);
             }
 
             @Override
