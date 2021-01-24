@@ -143,6 +143,12 @@ public class RemotePKGInstallerServiceImpl implements RemotePKGInstallerService,
     }
 
     @Override
+    public boolean isRunning() {
+        ExistsResponse response = exists("");
+        return !response.isExists() && response.isSuccess();
+    }
+
+    @Override
     public ExistsResponse exists(String titleId) {
         return restTemplate.postForObject("/is_exists", new TitleRequest(titleId), ExistsResponse.class);
     }

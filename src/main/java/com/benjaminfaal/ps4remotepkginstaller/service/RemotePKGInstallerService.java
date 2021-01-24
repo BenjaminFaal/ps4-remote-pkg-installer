@@ -13,6 +13,8 @@ public interface RemotePKGInstallerService {
 
     void setHost(String host);
 
+    boolean isRunning();
+
     ExistsResponse exists(String titleId);
 
     InstallResponse installFiles(File[] files);
