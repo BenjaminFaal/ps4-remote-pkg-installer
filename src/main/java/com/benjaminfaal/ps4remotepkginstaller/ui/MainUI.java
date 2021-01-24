@@ -12,6 +12,7 @@ import com.benjaminfaal.ps4remotepkginstaller.authentication.event.Authenticated
 import com.benjaminfaal.ps4remotepkginstaller.authentication.event.DeAuthenticatedEvent;
 import com.benjaminfaal.ps4remotepkginstaller.event.AuthenticatingStatusEvent;
 import com.benjaminfaal.ps4remotepkginstaller.event.TaskUpdateEvent;
+import com.benjaminfaal.ps4remotepkginstaller.model.ManualConsole;
 import com.benjaminfaal.ps4remotepkginstaller.model.api.request.InstallManifestJSONUrlRequest;
 import com.benjaminfaal.ps4remotepkginstaller.model.api.request.InstallPKGUrlRequest;
 import com.benjaminfaal.ps4remotepkginstaller.model.api.request.InstallPackagesRequest;
@@ -19,6 +20,7 @@ import com.benjaminfaal.ps4remotepkginstaller.model.api.request.InstallRequest;
 import com.benjaminfaal.ps4remotepkginstaller.model.api.response.InstallResponse;
 import com.benjaminfaal.ps4remotepkginstaller.model.api.response.TaskProgress;
 import com.benjaminfaal.ps4remotepkginstaller.service.AuthenticationService;
+import com.benjaminfaal.ps4remotepkginstaller.service.ManualConsoleService;
 import com.benjaminfaal.ps4remotepkginstaller.service.RemotePKGInstallerService;
 import com.benjaminfaal.ps4remotepkginstaller.util.Utils;
 import com.github.junrar.Junrar;
@@ -45,6 +47,8 @@ import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -60,6 +64,8 @@ import java.util.stream.Collectors;
 @CommonsLog
 @Component
 public class MainUI extends JFrame {
+
+    private static final int DISCOVER_TIMEOUT = 5000;
 
     // Swing
     private JTable tblTasks;
@@ -88,6 +94,12 @@ public class MainUI extends JFrame {
 
     private JCheckBox chkRemoteControl;
 
+    private JButton btnAddConsole;
+
+    private JButton btnRemoveConsole;
+
+    private JButton btnEditConsole;
+
     // Spring
     @Value("${project.version}")
     private String projectVersion;
@@ -103,6 +115,9 @@ public class MainUI extends JFrame {
 
     @Autowired
     private AuthenticationService authenticationService;
+
+    @Autowired
+    private ManualConsoleService manualConsoleService;
 
     @Autowired
     private ApplicationContext applicationContext;
@@ -141,12 +156,40 @@ public class MainUI extends JFrame {
                 return component;
             }
         });
-        cmbDiscoveredConsoles.addItemListener(e -> {
-            if (e.getStateChange() == ItemEvent.SELECTED) {
-                Console console = (Console) e.getItem();
+        cmbDiscoveredConsoles.addItemListener(event -> {
+            if (event.getStateChange() == ItemEvent.SELECTED) {
+                Console console = (Console) event.getItem();
                 btnAuthenticate.setText(authenticationService.isAuthenticated(console) ? "Deauthenticate" : "Authenticate");
                 btnAuthenticate.setEnabled(true);
                 remotePKGInstallerService.setHost(console.getHost());
+
+                boolean isManualConsole = console instanceof ManualConsole;
+                btnEditConsole.setEnabled(isManualConsole);
+                btnRemoveConsole.setEnabled(isManualConsole);
+
+                new SwingWorker<Console, Void>() {
+                    @Override
+                    protected Console doInBackground() throws Exception {
+                        return PS4DDP.discover(console.getHost(), DISCOVER_TIMEOUT / 2);
+                    }
+
+                    @Override
+                    protected void done() {
+                        try {
+                            Console discoveredConsole = get();
+                            console.setStatus(discoveredConsole.getStatus());
+                            discoveredConsole.getData().forEach(console::putIfAbsent);
+                        } catch (Exception e) {
+                            console.setStatus(Status.UNKNOWN);
+                            String message = "Error connecting to " + console.getUserFriendlyName() + System.lineSeparator() + e.getMessage();
+                            log.error(message, e);
+                            JOptionPane.showMessageDialog(MainUI.this, message, "Error connecting", JOptionPane.ERROR_MESSAGE);
+                        } finally {
+                            cmbDiscoveredConsoles.repaint();
+                        }
+                    }
+                }.execute();
+
                 refreshTasks();
                 if (isRemoteControl()) {
                     connect(console);
@@ -154,7 +197,6 @@ public class MainUI extends JFrame {
             }
         });
 
-        discoverConsoles();
         btnDiscoverConsoles.addActionListener(e -> discoverConsoles());
 
         btnAuthenticate.addActionListener(e -> {
@@ -174,11 +216,54 @@ public class MainUI extends JFrame {
             settings.setProperty("remoteControl", String.valueOf(remoteControl));
             btnAuthenticate.setVisible(remoteControl);
         });
+
+        DefaultComboBoxModel<Console> model = (DefaultComboBoxModel<Console>) cmbDiscoveredConsoles.getModel();
+        btnAddConsole.addActionListener(e -> {
+            String host = JOptionPane.showInputDialog(this, "Enter PS4 host", "Add PS4", JOptionPane.QUESTION_MESSAGE);
+            if (StringUtils.hasText(host)) {
+                validateHost(host);
+                ManualConsole addedManualConsole = manualConsoleService.add(host);
+                model.insertElementAt(addedManualConsole, 0);
+                model.setSelectedItem(addedManualConsole);
+            }
+        });
+
+        btnEditConsole.addActionListener(e -> {
+            ManualConsole selectedManualConsole = (ManualConsole) cmbDiscoveredConsoles.getSelectedItem();
+            String newHost = (String) JOptionPane.showInputDialog(this, "Enter PS4 host", "Add PS4", JOptionPane.QUESTION_MESSAGE, null, null, selectedManualConsole.getHost());
+            if (StringUtils.hasText(newHost)) {
+                validateHost(newHost);
+                manualConsoleService.edit(selectedManualConsole, newHost);
+                model.setSelectedItem(null);
+                model.setSelectedItem(selectedManualConsole);
+            }
+        });
+
+        btnRemoveConsole.addActionListener(e -> {
+            ManualConsole selectedManualConsole = (ManualConsole) cmbDiscoveredConsoles.getSelectedItem();
+            manualConsoleService.remove(selectedManualConsole);
+            authenticationService.deAuthenticate(selectedManualConsole);
+            model.removeElement(selectedManualConsole);
+        });
+
+        SwingUtilities.invokeLater(this::discoverConsoles);
+    }
+
+    private void validateHost(String host) {
+        try {
+            InetAddress.getByName(host);
+        } catch (UnknownHostException e) {
+            JOptionPane.showMessageDialog(this, "Invalid host: " + host + System.lineSeparator() + e.getMessage(), "Invalid host", JOptionPane.ERROR_MESSAGE);
+            throw new IllegalArgumentException("Invalid host: " + host, e);
+        }
     }
 
     private void discoverConsoles() {
         DefaultComboBoxModel<Console> model = (DefaultComboBoxModel<Console>) cmbDiscoveredConsoles.getModel();
         model.removeAllElements();
+        for (ManualConsole manualConsole : manualConsoleService.get()) {
+            model.addElement(manualConsole);
+        }
 
         btnDiscoverConsoles.setText("Discovering...");
         btnDiscoverConsoles.setEnabled(false);
@@ -187,7 +272,7 @@ public class MainUI extends JFrame {
         new SwingWorker<List<Console>, Console>() {
             @Override
             protected List<Console> doInBackground() throws Exception {
-                return PS4DDP.discover(5000, this::publish);
+                return PS4DDP.discover(DISCOVER_TIMEOUT, this::publish);
             }
 
             @Override
@@ -295,7 +380,7 @@ public class MainUI extends JFrame {
         initTasksTablePopupMenu();
 
         Timer refreshTasksTimer = new Timer(5000, e -> {
-            if (isWindowActive() && isRemotePKGInstallerRunning()) {
+            if (isWindowActive() && remotePKGInstallerService.countTasks() > 0 && isRemotePKGInstallerRunning()) {
                 refreshTasks();
             }
         });
