@@ -146,11 +146,10 @@ public class MainUI extends JFrame {
                 Console console = (Console) e.getItem();
                 btnAuthenticate.setText(authenticationService.isAuthenticated(console) ? "Deauthenticate" : "Authenticate");
                 btnAuthenticate.setEnabled(true);
+                remotePKGInstallerService.setHost(console.getHost());
+                refreshTasks();
                 if (isRemoteControl()) {
                     connect(console);
-                } else {
-                    remotePKGInstallerService.setHost(console.getHost());
-                    refreshTasks();
                 }
             }
         });
@@ -609,8 +608,6 @@ public class MainUI extends JFrame {
                     PS4DDP.launch(console.getHost(), credential);
                     connection.connect();
                     login(console, connection);
-                    remotePKGInstallerService.setHost(console.getHost());
-                    refreshTasks();
                 } catch (Exception e) {
                     connection = null;
                     String message = "Error connecting to PS4: " + console.getUserFriendlyName();
